@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>To-Do — Flask API UI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+    h1 { margin-bottom: .25rem; }
+    .row { display: flex; gap: .5rem; margin: .5rem 0; flex-wrap: wrap; }
+    input[type="text"], input[type="date"] { padding: .5rem; flex: 1; min-width: 200px; }
+    button { padding: .5rem .75rem; cursor: pointer; }
+    select { padding: .5rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { border-bottom: 1px solid #ddd; text-align: left; padding: .5rem; }
+    .tag { display: inline-block; background: #eef; border: 1px solid #cce; padding: 0 .4rem; border-radius: 999px; margin-right: .25rem; font-size: .85em; }
+    .muted { color: #666; font-size: .9em; }
+    .done { text-decoration: line-through; color: #777; }
+  </style>
+</head>
+<body>
+  <h1>To-Do</h1>
+  <div class="muted">Simple UI talking to your Flask API</div>
+
+  <h3>Add task</h3>
+  <div class="row">
+    <input id="title" type="text" placeholder="Task title" />
+    <input id="due" type="date" />
+    <input id="tags" type="text" placeholder="tags (space-separated)" />
+    <button onclick="addTask()">Add</button>
+  </div>
+
+  <h3>Tasks</h3>
+  <div class="row">
+    <label>Status:
+      <select id="status" onchange="loadTasks()">
+        <option value="all">All</option>
+        <option value="open">Open</option>
+        <option value="done">Done</option>
+      </select>
+    </label>
+    <input id="filterTag" type="text" placeholder="filter by tag" oninput="loadTasks()" />
+    <button onclick="loadTasks()">Refresh</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 9ch;">ID</th>
+        <th>Title</th>
+        <th style="width: 12ch;">Due</th>
+        <th>Tags</th>
+        <th style="width: 16ch;">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+
+  <script>
+    async function loadTasks() {
+      const status = document.getElementById('status').value;
+      const tag = document.getElementById('filterTag').value.trim();
+      const url = new URL('/tasks', window.location.origin);
+      url.searchParams.set('status', status);
+      if (tag) url.searchParams.set('tag', tag);
+
+      const res = await fetch(url);
+      const items = await res.json();
+      render(items);
+    }
+
+    function render(items) {
+      const tbody = document.getElementById('tbody');
+      tbody.innerHTML = '';
+      for (const t of items) {
+        const tr = document.createElement('tr');
+
+        // ID
+        const tdId = document.createElement('td');
+        tdId.textContent = (t.id || '').toString().slice(0,8);
+        tbody.appendChild(tr);
+        tr.appendChild(tdId);
+
+        // Title
+        const tdTitle = document.createElement('td');
+        tdTitle.textContent = t.title || '';
+        if (t.done) tdTitle.classList.add('done');
+        tr.appendChild(tdTitle);
+
+        // Due
+        const tdDue = document.createElement('td');
+        tdDue.textContent = t.due || '';
+        tr.appendChild(tdDue);
+
+        // Tags
+        const tdTags = document.createElement('td');
+        (t.tags || []).forEach(tag => {
+          const span = document.createElement('span');
+          span.className = 'tag';
+          span.textContent = tag;
+          tdTags.appendChild(span);
+        });
+        tr.appendChild(tdTags);
+
+        // Actions
+        const tdAct = document.createElement('td');
+        const btnDone = document.createElement('button');
+        btnDone.textContent = t.done ? 'Undone' : 'Done';
+        btnDone.onclick = () => toggleDone(t.id, !t.done);
+        tdAct.appendChild(btnDone);
+
+        const btnDel = document.createElement('button');
+        btnDel.style.marginLeft = '.5rem';
+        btnDel.textContent = 'Delete';
+        btnDel.onclick = () => delTask(t.id);
+        tdAct.appendChild(btnDel);
+
+        tr.appendChild(tdAct);
+      }
+    }
+
+    async function addTask() {
+      const title = document.getElementById('title').value.trim();
+      const due = document.getElementById('due').value || null;
+      const tagsRaw = document.getElementById('tags').value.trim();
+      const tags = tagsRaw ? tagsRaw.split(/\s+/) : [];
+
+      if (!title) { alert('Please enter a title'); return; }
+
+      await fetch('/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({ title, due, tags })
+      });
+      // clear inputs
+      document.getElementById('title').value = '';
+      document.getElementById('due').value = '';
+      document.getElementById('tags').value = '';
+      loadTasks();
+    }
+
+    async function toggleDone(id, setDone) {
+      await fetch(`/tasks/${id}/${setDone ? 'done' : 'undone'}`, { method: 'POST' });
+      loadTasks();
+    }
+
+    async function delTask(id) {
+      if (!confirm('Delete this task?')) return;
+      await fetch(`/tasks/${id}`, { method: 'DELETE' });
+      loadTasks();
+    }
+
+    // initial load
+    loadTasks();
+  </script>
+</body>
+</html>

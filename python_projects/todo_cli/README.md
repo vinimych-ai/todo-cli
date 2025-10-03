@@ -1,97 +1,137 @@
-# To-Do CLI (Python OOP + JSON)
+# To-Do Manager (CLI + API + Web UI)
 
-A simple command-line To-Do List Manager written in **Python**.  
-It demonstrates **object-oriented programming**, **JSON persistence**, and **argparse** CLI design.
+A simple Python to-do manager with:
+- **Command-line interface (CLI)**
+- **Flask REST API**
+- **Minimal web UI (HTML/JS)**
+
+Tasks are stored in `data/todo.json`.
 
 ---
 
 ## Features
-
-- Add tasks with optional due date and tags
-- List tasks (all, open, or done)
-- Mark tasks as done/undone
-- Delete tasks
-- Stores data in a JSON file (`data/todo.json`)
+- Add, list, complete, undo, and delete tasks
+- Filter by **status** (`all`, `open`, `done`)
+- Filter by **tag**
+- Export tasks to CSV
+- REST API endpoints (Flask)
+- Simple browser UI (served from Flask)
 
 ---
 
 ## Requirements
-
 - Python 3.10+
+- Install dependencies:
+```bash
+pip install -r requirements.txt
+````
+
+`requirements.txt`:
+
+```
+flask>=3.0
+```
 
 ---
 
-## Installation
+## 📌 CLI Usage
+
+Run commands from the project folder:
 
 ```bash
-git clone https://github.com/vinimych-ai/todo-cli.git
-cd todo-cli
-````
-___
-
-## Usage
-
-### Add a task
-
-```bash
-python todo.py add "Write README" --due 2025-10-10 --tags docs writing
-```
-
-### List tasks
-
-```bash
+python todo.py add "Write README" --due 2025-10-10 --tags work docs
 python todo.py list --status all
-python todo.py list --status open
-python todo.py list --status done
-```
-
-### Mark task as done / undone
-
-```bash
+python todo.py list --tag work
 python todo.py done <TASK_ID>
 python todo.py undone <TASK_ID>
+python todo.py delete <TASK_ID>
+python todo.py export --csv tasks.csv --status all
 ```
 
-### Delete task
+---
+
+## 🌐 API Usage
+
+Start the server:
 
 ```bash
-python todo.py delete <TASK_ID>
+python app.py
 ```
 
-> In the commands above, `<TASK_ID>` is the 8-character id shown by `list` (don’t include the angle brackets).
+Runs at: `http://127.0.0.1:5000/`
+
+### Endpoints
+
+* `GET /tasks?status=all&tag=work` → list tasks
+* `POST /tasks` → add task (JSON body: `{ "title": "...", "due": "YYYY-MM-DD", "tags": ["tag1","tag2"] }`)
+* `POST /tasks/<id>/done` → mark done
+* `POST /tasks/<id>/undone` → mark not done
+* `DELETE /tasks/<id>` → delete task
+
+### PowerShell examples
+
+```powershell
+# Add task
+Invoke-RestMethod -Method POST -Uri http://127.0.0.1:5000/tasks `
+  -ContentType "application/json" `
+  -Body (@{ title="API task"; due="2025-10-10"; tags=@("api","demo") } | ConvertTo-Json)
+
+# List tasks
+Invoke-RestMethod -Method GET -Uri "http://127.0.0.1:5000/tasks?status=all"
+
+# Mark done
+$id = (Invoke-RestMethod -Uri "http://127.0.0.1:5000/tasks?status=all")[0].id
+Invoke-RestMethod -Method POST -Uri "http://127.0.0.1:5000/tasks/$id/done"
+
+# Delete
+Invoke-RestMethod -Method DELETE -Uri "http://127.0.0.1:5000/tasks/$id"
+```
 
 ---
 
-## Example Output
+## 💻 Web UI
+
+1. Run the API:
+
+```bash
+python app.py
+```
+
+2. Open in your browser:
 
 ```
-ID        Done  Title                          Due        Tags
---------------------------------------------------------------------------------
-de8b4212       Write README                    2025-10-10 docs,writing
-f17a9c4d  ✔    Refactor parser                              code
+http://127.0.0.1:5000/
 ```
+
+The web page lets you:
+
+* Add tasks
+* View and filter tasks
+* Mark tasks as done/undone
+* Delete tasks
 
 ---
 
-## Project Structure
+## 📂 Project structure
 
 ```
 todo_cli/
-├─ tasks.py       # Backend logic (Task + TaskManager)
-├─ todo.py        # CLI interface (argparse)
+├─ tasks.py        # Core Task + TaskManager
+├─ todo.py         # CLI interface
+├─ app.py          # Flask API + serves web UI
+├─ static/
+│  └─ index.html   # Browser UI
 ├─ data/
-│  └─ todo.json   # Auto-created JSON storage
+│  └─ todo.json    # Storage file
+├─ tests/
+│  └─ test_tasks.py
+├─ requirements.txt
 └─ README.md
+```
+
 ```
 
 ---
 
-## License
-
-MIT License
-
-```
-
-If you want a `.gitignore` too, say the word and I’ll drop a ready-to-paste one.
-::contentReference[oaicite:0]{index=0}
+Would you like me to also add a **screenshot section** (with placeholders like `![screenshot](docs/ui.png)`), so you can drop in a picture of your running web UI later?
 ```
